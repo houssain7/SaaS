@@ -47,4 +47,4 @@ model Subscription {
 
   organization Organization @relation(fields: [organizationId], references: [id])
 }
-// STEP-1
+// STEP-01
