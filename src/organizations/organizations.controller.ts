@@ -10,3 +10,4 @@ export class OrganizationsController {
         return this.service.create(body.name, body.userId)
     }
 }
+//
