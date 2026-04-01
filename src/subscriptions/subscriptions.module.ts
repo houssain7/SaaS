@@ -5,3 +5,4 @@ import { SubscriptionsController } from './subscriptions.controller';
   controllers: [SubscriptionsController]
 })
 export class SubscriptionsModule {}
+//
