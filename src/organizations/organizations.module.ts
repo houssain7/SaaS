@@ -8,4 +8,3 @@ import { PrismaService } from '../../prisma/prisma.service';
   controllers: [OrganizationsController]
 })
 export class OrganizationsModule { }
-//

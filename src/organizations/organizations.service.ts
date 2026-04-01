@@ -3,29 +3,45 @@ import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class OrganizationsService {
-    constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-    async create(name: string, userId: string) {
-        const org = await this.prisma.organization.create({
-            data: {
-                name,
-                ownerId: userId,
-                memberships: {
-                    create: {
-                        userId,
-                        role: 'OWNER',
-                    },
-                },
-                subscription: {
-                    create: {
-                        plan: 'FREE',
-                        status: 'ACTIVE',
-                    },
-                },
-            },
-        })
+  // Create Organization
+  async create(name: string, userId: string) {
+    return this.prisma.organization.create({
+      data: {
+        name,
+        ownerId: userId,
 
-        return org
-    }
+        // create membership (OWNER)
+        memberships: {
+          create: {
+            userId: userId,
+            role: 'OWNER',
+          },
+        },
+
+        // create subscription (FREE)
+        subscription: {
+          create: {
+            plan: 'FREE',
+            status: 'ACTIVE',
+          },
+        },
+      },
+      include: {
+        memberships: true,
+        subscription: true,
+      },
+    })
+  }
+
+  // Get all organizations of a user
+  async findUserOrganizations(userId: string) {
+    return this.prisma.membership.findMany({
+      where: { userId },
+      include: {
+        organization: true,
+      },
+    })
+  }
 }
-//
