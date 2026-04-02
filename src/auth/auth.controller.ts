@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
-// Swagger
+// Swagger decorators
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Auth')
@@ -14,13 +14,10 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiBody({
     schema: {
-      example: {
-        email: 'test@test.com',
-        password: '123456'
-      }
-    }
+      example: { email: 'test@test.com', password: '123456' },
+    },
   })
-  register(@Body() body: any) {
+  async register(@Body() body: { email: string; password: string }) {
     const { email, password } = body;
 
     if (!email || !password) {
@@ -35,13 +32,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User logged in successfully' })
   @ApiBody({
     schema: {
-      example: {
-        email: 'test@test.com',
-        password: '123456'
-      }
-    }
+      example: { email: 'test@test.com', password: '123456' },
+    },
   })
-  login(@Body() body: any) {
+  async login(@Body() body: { email: string; password: string }) {
     const { email, password } = body;
 
     if (!email || !password) {
