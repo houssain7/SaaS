@@ -5,51 +5,43 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
-  ) {}
+    constructor(
+        private prisma: PrismaService,
+        private jwtService: JwtService,
+    ) {}
 
-  // Register a new user
-  async register(email: string, password: string) {
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    async register(email: string, password: string) {
+        const existingUser = await this.prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            throw new UnauthorizedException('Email already exists');
+        }
 
-    if (existingUser) {
-      throw new UnauthorizedException('User already exists');
+        const hashed = await bcrypt.hash(password, 10);
+
+        const user = await this.prisma.user.create({
+            data: { email, password: hashed },
+        });
+
+        return this.generateTokens(user.id, user.email);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    async login(email: string, password: string) {
+        const user = await this.prisma.user.findUnique({ where: { email } });
 
-    const user = await this.prisma.user.create({
-      data: { email, password: hashedPassword },
-    });
+        if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    return this.generateTokens(user.id, user.email);
-  }
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-  // Login
-  async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+        return this.generateTokens(user.id, user.email);
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    generateTokens(userId: string, email: string) {
+        const payload = { sub: userId, email };
 
-    if (!isValid) {
-      throw new UnauthorizedException('Invalid credentials');
+        return {
+            accessToken: this.jwtService.sign(payload, { expiresIn: '15m' }),
+            refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
+        };
     }
-
-    return this.generateTokens(user.id, user.email);
-  }
-
-  // Generate JWT tokens
-  generateTokens(userId: string, email: string) {
-    const payload = { sub: userId, email };
-    return {
-      accessToken: this.jwtService.sign(payload, { expiresIn: '15m' }),
-      refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
-    };
-  }
 }

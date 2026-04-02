@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-
+import { UseGuards, Get, Req } from '@nestjs/common';
+import { JwtGuard } from './guards/jwt.guard';
 // Swagger decorators
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 
@@ -44,4 +45,9 @@ export class AuthController {
 
     return this.authService.login(email, password);
   }
+  @UseGuards(JwtGuard)
+    @Get('profile')
+    getProfile(@Req() req: any) {
+        return req.user
+    }
 }
