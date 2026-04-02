@@ -1,33 +1,34 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
-import { OrganizationsService } from './organizations.service';
-import { JwtAuthGuard } from '../guards/jwt.guard';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Body, Controller, Post, Get, UseGuards, Req, Param, Put, Delete } from '@nestjs/common'
+import { OrganizationsService } from './organizations.service'
+import { JwtGuard } from '../auth/guards/jwt.guard'
 
-@ApiTags('Organizations')
-@ApiBearerAuth() // Swagger montre que le endpoint est protégé
 @Controller('organizations')
+@UseGuards(JwtGuard)
 export class OrganizationsController {
-  constructor(private readonly organizationService: OrganizationsService) {}
+    constructor(private service: OrganizationsService) { }
 
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  @ApiOperation({ summary: 'Get all organizations (JWT protected)' })
-  @ApiResponse({ status: 200, description: 'List of organizations' })
-  findAll() {
-    return this.organizationService.findAll();
-  }
+    @Post()
+    create(@Body() body: any, @Req() req: any) {
+        return this.service.create(body.name, req.user.userId)
+    }
 
-  @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  @ApiOperation({ summary: 'Get organization by ID (JWT protected)' })
-  findOne(@Param('id') id: string) {
-    return this.organizationService.findOne(id);
-  }
+    @Get()
+    findAll(@Req() req: any) {
+        return this.service.findAll(req.user.userId)
+    }
 
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  @ApiOperation({ summary: 'Create a new organization (JWT protected)' })
-  create(@Body() body: { name: string }) {
-    return this.organizationService.create(body.name);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string, @Req() req: any) {
+        return this.service.findOne(id, req.user.userId)
+    }
+
+    @Put(':id')
+    update(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+        return this.service.update(id, body.name, req.user.userId)
+    }
+
+    @Delete(':id')
+    delete(@Param('id') id: string, @Req() req: any) {
+        return this.service.delete(id, req.user.userId)
+    }
 }
