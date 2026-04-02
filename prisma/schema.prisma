@@ -1,35 +1,37 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma schema for SaaS app with Posts
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
+  id          String        @id @default(uuid())
+  email       String        @unique
+  password    String
+  createdAt   DateTime      @default(now())
 
   memberships Membership[]
+  posts       Post[]
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  ownerId   String
-  createdAt DateTime @default(now())
+  id          String        @id @default(uuid())
+  name        String
+  ownerId     String
+  createdAt   DateTime      @default(now())
 
   memberships Membership[]
   subscription Subscription?
+  posts        Post[]
 }
 
 model Membership {
-  id             String @id @default(uuid())
+  id             String       @id @default(uuid())
   userId         String
   organizationId String
   role           String
@@ -39,12 +41,23 @@ model Membership {
 }
 
 model Subscription {
-  id             String   @id @default(uuid())
-  organizationId String   @unique
+  id             String       @id @default(uuid())
+  organizationId String       @unique
   plan           String
   status         String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id])
 }
-// STEP-01
+
+model Post {
+  id             String       @id @default(uuid())
+  title          String
+  content        String
+  userId         String
+  organizationId String?      // optional: assign post to organization
+  createdAt      DateTime     @default(now())
+
+  user          User         @relation(fields: [userId], references: [id])
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+}
