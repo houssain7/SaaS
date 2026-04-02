@@ -11,7 +11,10 @@ export class PostsController {
   @ApiOperation({ summary: 'Create a new post' })
   @ApiBody({
     schema: {
-      example: { title: 'My first post', content: 'Hello world!', userId: 1 },
+      example: {
+         title: 'My first post',
+          content: 'Hello world!',
+           userId: 1 },
     },
   })
   @ApiResponse({ status: 201, description: 'Post created successfully' })
