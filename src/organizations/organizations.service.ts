@@ -1,21 +1,15 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()
 export class OrganizationsService {
     constructor(private prisma: PrismaService) { }
 
-    async create(name: string, userId: string) {
-        const org = await this.prisma.organization.create({
+    async create(name: string) {
+        return this.prisma.organization.create({
             data: {
                 name,
-                ownerId: userId,
-                memberships: {
-                    create: {
-                        userId,
-                        role: 'OWNER',
-                    },
-                },
+                ownerId: "dev-user", // ✅ required by schema
                 subscription: {
                     create: {
                         plan: 'FREE',
@@ -24,19 +18,10 @@ export class OrganizationsService {
                 },
             },
         })
-
-        return org
     }
 
-    async findAll(userId: string) {
+    async findAll() {
         return this.prisma.organization.findMany({
-            where: {
-                memberships: {
-                    some: {
-                        userId,
-                    },
-                },
-            },
             include: {
                 memberships: true,
                 subscription: true,
@@ -44,7 +29,7 @@ export class OrganizationsService {
         })
     }
 
-    async findOne(id: string, userId: string) {
+    async findOne(id: string) {
         const org = await this.prisma.organization.findUnique({
             where: { id },
             include: {
@@ -55,17 +40,11 @@ export class OrganizationsService {
 
         if (!org) throw new NotFoundException('Organization not found')
 
-        const isMember = org.memberships.some(m => m.userId === userId)
-        if (!isMember) throw new ForbiddenException('You do not have access to this organization')
-
         return org
     }
 
-    async update(id: string, name: string, userId: string) {
-        const org = await this.findOne(id, userId)
-
-        const isOwner = org.ownerId === userId
-        if (!isOwner) throw new ForbiddenException('Only organization owner can update')
+    async update(id: string, name: string) {
+        await this.findOne(id)
 
         return this.prisma.organization.update({
             where: { id },
@@ -73,11 +52,8 @@ export class OrganizationsService {
         })
     }
 
-    async delete(id: string, userId: string) {
-        const org = await this.findOne(id, userId)
-
-        const isOwner = org.ownerId === userId
-        if (!isOwner) throw new ForbiddenException('Only organization owner can delete')
+    async delete(id: string) {
+        await this.findOne(id)
 
         return this.prisma.organization.delete({
             where: { id },

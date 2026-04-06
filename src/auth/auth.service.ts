@@ -44,4 +44,9 @@ export class AuthService {
             refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
         };
     }
+
+    async validateUser(userId: string): Promise<boolean> {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        return !!user;
+    }
 }

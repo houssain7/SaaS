@@ -6,7 +6,7 @@ import { Request } from 'express';
 
 @Injectable()
 export class JwtGuard implements CanActivate {
-    constructor(private readonly jwtService: JwtService, private readonly authService: AuthService) {}
+    constructor(private readonly jwtService: JwtService, private readonly authService: AuthService) { }
 
     canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
         const request = context.switchToHttp().getRequest<Request>();
@@ -18,7 +18,8 @@ export class JwtGuard implements CanActivate {
 
         try {
             const payload = this.jwtService.verify(token);
-            return this.authService.validateUser(payload.id);
+            // payload uses 'sub' for the user id as defined in AuthService.generateTokens
+            return this.authService.validateUser(payload.sub);
         } catch (err) {
             return false;
         }
