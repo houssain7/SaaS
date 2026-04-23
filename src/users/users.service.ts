@@ -1,16 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
-  ) { }
+  constructor(private prisma: PrismaService) { }
 
-  // Récupérer le profil utilisateur par ID (depuis le JWT)
+  // Récupérer le profil utilisateur
   async getUserProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -40,9 +36,8 @@ export class UsersService {
     return user;
   }
 
-  // Mettre à jour le profil utilisateur
+  // Mettre à jour le profil
   async updateUserProfile(userId: string, updateData: { email?: string }) {
-    // Vérifier si l'email est unique (s'il est changé)
     if (updateData.email) {
       const existingUser = await this.prisma.user.findUnique({
         where: { email: updateData.email },
@@ -66,7 +61,7 @@ export class UsersService {
     return updatedUser;
   }
 
-  // Obtenir toutes les organisations de l'utilisateur
+  // Obtenir les organisations de l'utilisateur
   async getUserOrganizations(userId: string) {
     const memberships = await this.prisma.membership.findMany({
       where: { userId },
@@ -84,15 +79,13 @@ export class UsersService {
     });
 
     if (!memberships.length) {
-      throw new NotFoundException(
-        'Cet utilisateur n\'appartient à aucune organisation',
-      );
+      return [];
     }
 
     return memberships;
   }
 
-  // Changer le mot de passe utilisateur
+  // Changer le mot de passe
   async changePassword(
     userId: string,
     currentPassword: string,
@@ -106,13 +99,11 @@ export class UsersService {
       throw new NotFoundException('Utilisateur non trouvé');
     }
 
-    // Vérifier que l'ancien mot de passe est correct
-    const isValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isValid) {
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
       throw new BadRequestException('Mot de passe actuel incorrect');
     }
 
-    // Hasher le nouveau mot de passe
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     const updatedUser = await this.prisma.user.update({
@@ -125,14 +116,5 @@ export class UsersService {
     });
 
     return updatedUser;
-  }
-
-  // Vérifier et décoder le JWT
-  verifyToken(token: string) {
-    try {
-      return this.jwtService.verify(token);
-    } catch (error) {
-      throw new BadRequestException('Token invalide ou expiré');
-    }
   }
 }

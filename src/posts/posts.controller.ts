@@ -1,55 +1,116 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { PostsService } from './posts.service';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 
-@ApiTags('Posts')
 @Controller('posts')
+@UseGuards(JwtGuard) // 🔥 secure all endpoints
 export class PostsController {
-  constructor(private postsService: PostsService) {}
+  constructor(private readonly postsService: PostsService) { }
 
+  // ✅ Create a new post (draft)
   @Post()
-  @ApiOperation({ summary: 'Create a new post' })
-  @ApiBody({
-    schema: {
-      example: {
-         title: 'My first post',
-          content: 'Hello world!',
-           userId: 1 },
-    },
-  })
-  @ApiResponse({ status: 201, description: 'Post created successfully' })
-  create(@Body() body: any) {
-    const { title, content, userId } = body;
-    return this.postsService.create(title, content, userId);
+  createPost(
+    @Req() req,
+    @Body() body: { title: string; content: string; organizationId: string },
+  ) {
+    return this.postsService.createPost(req.user.id, body.organizationId, {
+      title: body.title,
+      content: body.content,
+    });
   }
 
-  @Get()
-  @ApiOperation({ summary: 'Get all posts' })
-  findAll() {
-    return this.postsService.findAll();
+  // ✅ Get all posts of an organization with pagination
+  @Get('organization/:orgId')
+  getOrganizationPosts(
+    @Param('orgId') orgId: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.postsService.getOrganizationPosts(orgId, Number(page), Number(limit));
   }
 
+  // ✅ Get all drafts of the logged-in user
+  @Get('drafts')
+  getUserDrafts(@Req() req) {
+    return this.postsService.getUserDrafts(req.user.id);
+  }
+
+  // ✅ Get a specific post by ID
   @Get(':id')
-  @ApiOperation({ summary: 'Get one post by ID' })
-  findOne(@Param('id') id: string) {
-    return this.postsService.findOne(id);
+  getPost(@Param('id') postId: string) {
+    return this.postsService.getPost(postId);
   }
 
+  // ✅ Update a post (only drafts)
   @Put(':id')
-  @ApiOperation({ summary: 'Update a post by ID' })
-  @ApiBody({
-    schema: {
-      example: { title: 'Updated title', content: 'Updated content' },
-    },
-  })
-  update(@Param('id') id: string, @Body() body: any) {
-    const { title, content } = body;
-    return this.postsService.update(id, title, content);
+  updatePost(
+    @Param('id') postId: string,
+    @Req() req,
+    @Body() body: { title?: string; content?: string },
+  ) {
+    return this.postsService.updatePost(postId, req.user.id, body);
   }
 
+  // ✅ Delete a post
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a post by ID' })
-  remove(@Param('id') id: string) {
-    return this.postsService.remove(id);
+  deletePost(@Param('id') postId: string, @Req() req) {
+    return this.postsService.deletePost(postId, req.user.id);
+  }
+
+  // ✅ Submit a post for approval (PRO only)
+  @Put(':id/submit')
+  submitForApproval(@Param('id') postId: string, @Req() req) {
+    return this.postsService.submitForApproval(postId, req.user.id);
+  }
+
+  // ✅ Approve/Reject a post (owner only)
+  @Put(':id/approve')
+  approvePost(
+    @Param('id') postId: string,
+    @Req() req,
+    @Body() body: { approve: boolean; reason?: string },
+  ) {
+    return this.postsService.approvePost(postId, req.user.id, body.approve, body.reason);
+  }
+
+  // ✅ Get all posts pending approval (owner only)
+  @Get('pending/organization/:orgId')
+  getPendingApproval(@Param('orgId') orgId: string) {
+    return this.postsService.getPendingApproval(orgId);
+  }
+
+  // ✅ Publish a post (owner only)
+  @Put(':id/publish')
+  publishPost(@Param('id') postId: string, @Req() req) {
+    return this.postsService.publishPost(postId, req.user.id);
+  }
+
+  // ✅ Get all published posts
+  @Get('published/organization/:orgId')
+  getPublishedPosts(@Param('orgId') orgId: string) {
+    return this.postsService.getPublishedPosts(orgId);
+  }
+
+  // ✅ Get all approved posts
+  @Get('approved/organization/:orgId')
+  getApprovedPosts(@Param('orgId') orgId: string) {
+    return this.postsService.getApprovedPosts(orgId);
+  }
+
+  // ✅ Get all rejected posts
+  @Get('rejected/organization/:orgId')
+  getRejectedPosts(@Param('orgId') orgId: string) {
+    return this.postsService.getRejectedPosts(orgId);
   }
 }

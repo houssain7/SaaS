@@ -6,34 +6,38 @@ import {
   Body,
   Headers,
   BadRequestException,
-  UseGuards,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) { }
+  constructor(
+    @Inject(forwardRef(() => AuthService))
+    private usersService: UsersService,
+    private authService: AuthService,
+  ) { }
 
-  // Helper: Extraire l'ID utilisateur du token JWT
+  // Extraire userId du JWT
   private getUserIdFromToken(authHeader: string): string {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new BadRequestException('Token manquant');
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const decoded = this.usersService.verifyToken(token);
+    const decoded = this.authService.verifyToken(token);
 
-    return decoded.sub; // 'sub' contient l'ID utilisateur
+    return decoded.sub;
   }
 
-  // GET /users/profile
   @Get('profile')
   async getProfile(@Headers('authorization') authHeader: string) {
     const userId = this.getUserIdFromToken(authHeader);
     return this.usersService.getUserProfile(userId);
   }
 
-  // PUT /users/profile
   @Put('profile')
   async updateProfile(
     @Headers('authorization') authHeader: string,
@@ -43,19 +47,16 @@ export class UsersController {
     return this.usersService.updateUserProfile(userId, updateData);
   }
 
-  // GET /users/organizations
   @Get('organizations')
   async getUserOrganizations(@Headers('authorization') authHeader: string) {
     const userId = this.getUserIdFromToken(authHeader);
     return this.usersService.getUserOrganizations(userId);
   }
 
-  // POST /users/change-password
   @Post('change-password')
   async changePassword(
     @Headers('authorization') authHeader: string,
-    @Body()
-    body: { currentPassword: string; newPassword: string },
+    @Body() body: { currentPassword: string; newPassword: string },
   ) {
     const userId = this.getUserIdFromToken(authHeader);
     return this.usersService.changePassword(

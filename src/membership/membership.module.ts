@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
-import { SubscriptionsController } from './subscriptions.controller';
+import { MembershipsService } from './membership.service';
+import { MembershipsController } from './membership.controller';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
@@ -8,8 +8,7 @@ import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [OrganizationsModule, AuthModule],
-  controllers: [SubscriptionsController],
-  providers: [SubscriptionsService, PrismaService, JwtGuard],
-  exports: [SubscriptionsService],
+  controllers: [MembershipsController],
+  providers: [MembershipsService, PrismaService, JwtGuard],
 })
-export class SubscriptionsModule { }
+export class MembershipsModule { }

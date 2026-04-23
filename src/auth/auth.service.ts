@@ -8,9 +8,9 @@ export class AuthService {
     constructor(
         private prisma: PrismaService,
         private jwtService: JwtService,
-    ) {}
+    ) { }
 
-    async register(email: string, password: string) {
+    async register(email: string, password: string, name: string) {
         const existingUser = await this.prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             throw new UnauthorizedException('Email already exists');
@@ -19,7 +19,7 @@ export class AuthService {
         const hashed = await bcrypt.hash(password, 10);
 
         const user = await this.prisma.user.create({
-            data: { email, password: hashed },
+            data: { name, email, password: hashed },
         });
 
         return this.generateTokens(user.id, user.email);
@@ -42,11 +42,23 @@ export class AuthService {
         return {
             accessToken: this.jwtService.sign(payload, { expiresIn: '15m' }),
             refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
+            user: {
+                id: userId,
+                email,
+            }
         };
     }
 
     async validateUser(userId: string): Promise<boolean> {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         return !!user;
+    }
+
+    verifyToken(token: string): any {
+        try {
+            return this.jwtService.verify(token);
+        } catch {
+            throw new UnauthorizedException('Token invalide');
+        }
     }
 }

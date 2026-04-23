@@ -1,41 +1,43 @@
-import { Body, Controller, Get, Patch, Query } from '@nestjs/common'
-import { SubscriptionsService } from './subscriptions.service'
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Body,
+  Req,
+} from '@nestjs/common';
+import { SubscriptionsService } from './subscriptions.service';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { UseGuards } from '@nestjs/common';
 
-@Controller('subscriptions')
+@Controller('organizations/:orgId/subscription')
+@UseGuards(JwtGuard)
 export class SubscriptionsController {
-  constructor(private service: SubscriptionsService) {}
+  constructor(private service: SubscriptionsService) { }
 
-  // Get subscription
+  // GET SUBSCRIPTION
   @Get()
-  getSubscription(@Query('orgId') orgId: string) {
-    if (!orgId) {
-      return { message: 'orgId required' }
-    }
-
-    return this.service.getByOrganization(orgId)
+  getSubscription(@Param('orgId') orgId: string) {
+    return this.service.getSubscription(orgId);
   }
 
-  // Change plan
-  @Patch('plan')
-  changePlan(@Body() body: any) {
-    const { orgId, plan } = body
-
-    if (!orgId || !plan) {
-      return { message: 'orgId and plan required' }
-    }
-
-    return this.service.changePlan(orgId, plan)
+  // CHANGE PLAN
+  @Patch('change-plan')
+  changePlan(
+    @Param('orgId') orgId: string,
+    @Body() body: { plan: 'FREE' | 'PRO' },
+    @Req() req,
+  ) {
+    return this.service.changePlan(
+      orgId,
+      req.user.id,
+      body.plan,
+    );
   }
 
-  // Update status
-  @Patch('status')
-  updateStatus(@Body() body: any) {
-    const { orgId, status } = body
-
-    if (!orgId || !status) {
-      return { message: 'orgId and status required' }
-    }
-
-    return this.service.updateStatus(orgId, status)
+  // CANCEL
+  @Patch('cancel')
+  cancel(@Param('orgId') orgId: string, @Req() req) {
+    return this.service.cancelSubscription(orgId, req.user.id);
   }
 }

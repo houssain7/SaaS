@@ -1,5 +1,3 @@
-// Prisma schema for SaaS app with Posts
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,55 +7,90 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          String        @id @default(uuid())
-  email       String        @unique
-  password    String
-  createdAt   DateTime      @default(now())
+enum PostStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PUBLISHED
+  REJECTED
+}
 
-  memberships Membership[]
-  posts       Post[]
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  memberships        Membership[]
+  posts              Post[]
+  ownedOrganizations Organization[] @relation("owner")
 }
 
 model Organization {
-  id          String        @id @default(uuid())
-  name        String
-  ownerId     String
-  createdAt   DateTime      @default(now())
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
 
-  memberships Membership[]
+  owner        User          @relation("owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberships  Membership[]
   subscription Subscription?
   posts        Post[]
 }
 
 model Membership {
-  id             String       @id @default(uuid())
+  id             String @id @default(uuid())
   userId         String
   organizationId String
-  role           String
+  role           Role // owner, admin, member
 
-  user          User          @relation(fields: [userId], references: [id])
-  organization  Organization  @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Plan {
+  id         String   @id @default(uuid())
+  name       String   @unique // FREE, PRO
+  maxMembers Int
+  price      Float
+  features   String[] // Array of features
+  createdAt  DateTime @default(now())
+
+  subscriptions Subscription[]
 }
 
 model Subscription {
-  id             String       @id @default(uuid())
-  organizationId String       @unique
-  plan           String
-  status         String
-  createdAt      DateTime     @default(now())
+  id             String    @id @default(uuid())
+  organizationId String    @unique
+  planId         String
+  status         String // active, cancelled
+  createdAt      DateTime  @default(now())
+  renewalDate    DateTime?
 
-  organization Organization @relation(fields: [organizationId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan         @relation(fields: [planId], references: [id])
 }
 
 model Post {
-  id             String       @id @default(uuid())
+  id             String     @id @default(uuid())
   title          String
   content        String
   userId         String
-  organizationId String?      // optional: assign post to organization
-  createdAt      DateTime     @default(now())
+  organizationId String
+  status         PostStatus @default(DRAFT) // draft, pending_approval, approved, published, rejected
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  publishedAt    DateTime?
 
-  user          User         @relation(fields: [userId], references: [id])
-  organization  Organization? @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }

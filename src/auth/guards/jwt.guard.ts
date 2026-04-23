@@ -18,8 +18,16 @@ export class JwtGuard implements CanActivate {
 
         try {
             const payload = this.jwtService.verify(token);
-            // payload uses 'sub' for the user id as defined in AuthService.generateTokens
+            request.user = { id: payload.sub, email: payload.email };
             return this.authService.validateUser(payload.sub);
+        } catch (err) {
+            return false;
+        }
+    }
+    verifyToken(token: string): boolean {
+        try {
+            this.jwtService.verify(token);
+            return true;
         } catch (err) {
             return false;
         }
